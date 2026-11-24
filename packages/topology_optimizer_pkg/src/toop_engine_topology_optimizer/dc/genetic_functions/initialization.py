@@ -37,7 +37,7 @@ from toop_engine_dc_solver.preprocess.convert_to_jax import (
     DynamicInformationStats,
     extract_dynamic_information_stats,
 )
-from toop_engine_topology_optimizer.dc.ga_helpers import TrackingMixingEmitter
+from toop_engine_topology_optimizer.dc.algorithms import Context, build_algorithm
 from toop_engine_topology_optimizer.dc.genetic_functions.crossover import (
     crossover,
 )
@@ -105,6 +105,8 @@ def initialize_genetic_algorithm(
     devices: Optional[list[jax.Device]] = None,
     cell_depth: int = 1,
     n_worst_contingencies: int = 10,
+    algorithm: str = "map_elites",
+    algorithm_params: Optional[dict] = None,
 ) -> tuple[DiscreteMapElites, JaxOptimizerData]:
     """Initialize the mapelites algorithm.
 
@@ -143,6 +145,10 @@ def initialize_genetic_algorithm(
     n_worst_contingencies: int
         The number of worst contingencies to consider in the scoring function for calculating
         top_k_overloads_artificial_limit_n_1.
+    algorithm: str
+        The name of the search algorithm to use, see dc/algorithms. Defaults to ToOp's MAP-Elites.
+    algorithm_params: Optional[dict]
+        Extra settings for the chosen algorithm
 
     Returns
     -------
@@ -192,11 +198,22 @@ def initialize_genetic_algorithm(
     )
     crossover_partial = partial(crossover, action_set=action_set, prob_take_a=proportion_crossover)
 
-    emitter = TrackingMixingEmitter(
-        mutate_partial,
-        crossover_partial,
-        crossover_mutation_ratio,
-        batch_size,
+    # ALGORITHM SOCKET (project fork): the search algorithm is looked up by name.
+    # "map_elites" builds exactly the TrackingMixingEmitter that used to be built here.
+    emitter = build_algorithm(
+        algorithm,
+        Context(
+            batch_size=batch_size,
+            max_num_splits=max_num_splits,
+            max_num_disconnections=max_num_disconnections,
+            action_set=action_set,
+            n_relevant_subs=int(dynamic_informations[0].n_sub_relevant),
+            n_disconnectable=int(dynamic_informations[0].disconnectable_branches.shape[0]),
+            mutate_fn=mutate_partial,
+            crossover_fn=crossover_partial,
+            crossover_mutation_ratio=crossover_mutation_ratio,
+            params=dict(algorithm_params or {}),
+        ),
     )
     algo = DiscreteMapElites(
         scoring_function=scoring_function_partial,
@@ -433,6 +450,8 @@ def algo_setup(
         me_descriptors=ga_args.me_descriptors,
         cell_depth=ga_args.cell_depth,
         n_worst_contingencies=ga_args.n_worst_contingencies,
+        algorithm=ga_args.algorithm,  # ALGORITHM SOCKET (project fork)
+        algorithm_params=ga_args.algorithm_params,  # ALGORITHM SOCKET (project fork)
     )
 
     initial_fitness, initial_metrics = get_repertoire_metrics(
