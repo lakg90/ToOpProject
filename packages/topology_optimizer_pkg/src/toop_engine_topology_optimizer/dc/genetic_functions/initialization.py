@@ -37,7 +37,7 @@ from toop_engine_dc_solver.preprocess.convert_to_jax import (
     DynamicInformationStats,
     extract_dynamic_information_stats,
 )
-from toop_engine_topology_optimizer.dc.algorithms import Context, build_algorithm
+from toop_engine_topology_optimizer.dc.algorithm_loader import Context, build_algorithm
 from toop_engine_topology_optimizer.dc.genetic_functions.crossover import (
     crossover,
 )
@@ -146,7 +146,7 @@ def initialize_genetic_algorithm(
         The number of worst contingencies to consider in the scoring function for calculating
         top_k_overloads_artificial_limit_n_1.
     algorithm: str
-        The name of the search algorithm to use, see dc/algorithms. Defaults to ToOp's MAP-Elites.
+        The name of the search algorithm to use, see plug_and_play/algorithms. Defaults to ToOp's MAP-Elites.
     algorithm_params: Optional[dict]
         Extra settings for the chosen algorithm
 
@@ -198,8 +198,7 @@ def initialize_genetic_algorithm(
     )
     crossover_partial = partial(crossover, action_set=action_set, prob_take_a=proportion_crossover)
 
-    # ALGORITHM SOCKET (project fork): the search algorithm is looked up by name.
-    # "map_elites" builds exactly the TrackingMixingEmitter that used to be built here.
+    # The emitter decides which topologies are tried next. "map_elites" gives the TrackingMixingEmitter.
     emitter = build_algorithm(
         algorithm,
         Context(
@@ -450,8 +449,8 @@ def algo_setup(
         me_descriptors=ga_args.me_descriptors,
         cell_depth=ga_args.cell_depth,
         n_worst_contingencies=ga_args.n_worst_contingencies,
-        algorithm=ga_args.algorithm,  # ALGORITHM SOCKET (project fork)
-        algorithm_params=ga_args.algorithm_params,  # ALGORITHM SOCKET (project fork)
+        algorithm=ga_args.algorithm,
+        algorithm_params=ga_args.algorithm_params,
     )
 
     initial_fitness, initial_metrics = get_repertoire_metrics(

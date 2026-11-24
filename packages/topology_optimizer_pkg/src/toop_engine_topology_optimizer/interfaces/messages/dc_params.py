@@ -40,13 +40,12 @@ class BatchedMEParameters(BaseModel):
     random_seed: int = 42
     """The random seed to use for reproducibility"""
 
-    # ALGORITHM SOCKET (project fork)
+    ### ALGORITHM CONFIGURATION ###
     algorithm: str = "map_elites"
-    """Which search algorithm suggests the switching plans. See dc/algorithms for the list.
-    The default is ToOp's original MAP-Elites."""
+    """The search algorithm that suggests new topologies, see plug_and_play/algorithms. Defaults to MAP-Elites."""
 
     algorithm_params: dict = {}
-    """Extra settings for the chosen algorithm, passed to it unchanged."""
+    """Extra settings for the chosen algorithm"""
 
     enable_nodal_inj_optim: bool = False
     """Whether to enable the nodal injection optimization stage. This can optimize PSTs (currently) and soon HVDC and

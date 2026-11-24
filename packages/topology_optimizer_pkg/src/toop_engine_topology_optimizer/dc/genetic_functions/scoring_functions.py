@@ -500,7 +500,9 @@ def summarize(
 
     # Store the topologies
     best_topos = [t.model_dump() for t in topologies]
-    retval = {k: v.item() for k, v in emitter_state.__dict__.items()}
+    # Only the counters, an algorithm's own memory (plug_and_play) is not a single number
+    counters = ("total_branch_combis", "total_inj_combis", "total_num_splits")
+    retval = {k: getattr(emitter_state, k).item() for k in counters}
     retval.update(
         {
             "max_fitness": max_fitness,
